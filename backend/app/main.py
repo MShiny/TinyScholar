@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import FastAPI, status
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
 app = FastAPI(
@@ -61,3 +61,10 @@ def create_child(child: ChildCreate) -> Child:
 )
 def list_children() -> List[Child]:
     return children
+
+@app.get("/children/{id}", tags=["Children"], response_model=Child)
+def get_child(id: int):
+    for child in children:
+        if child.id == id:
+            return child
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Child not found")
