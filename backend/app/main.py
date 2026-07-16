@@ -84,3 +84,16 @@ def update_child(id: int, update: ChildUpdate) -> Child:
             children[index] = updated
             return updated
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Child not found")
+
+
+@app.delete(
+    "/children/{id}",
+    tags=["Children"],
+    status_code=status.HTTP_204_NO_CONTENT
+)
+def delete_child(id: int) -> None:
+    for index, child in enumerate(children):
+        if child.id == id:
+            children.pop(index)
+            return
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Child not found")
