@@ -1,99 +1,29 @@
-from typing import List, Optional
-from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, Field
+from fastapi import FastAPI
+
+from .routers.children import router as children_router
+
 
 app = FastAPI(
     title="TinyScholar API",
     description="AI-powered game-based learning platform for children.",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 
 @app.get(
     "/",
-    tags=["General"]
+    tags=["General"],
 )
 def root():
     return {"message": "Welcome to TinyScholar"}
 
 
-@app.get("/health", tags=["General"])
+@app.get(
+    "/health",
+    tags=["General"],
+)
 def health():
     return {"status": "ok"}
 
 
-# --- Child profiles (in-memory for now) ---
-
-class ChildCreate(BaseModel):
-    name: str
-    age: int = Field(ge=6, le=17)  # Pydantic validates before the endpoint runs
-    grade: str
-
-
-class Child(ChildCreate):
-    id: int
-
-
-class ChildUpdate(BaseModel):
-    name: Optional[str] = None
-    age: Optional[int] = Field(default=None, ge=6, le=17)
-    grade: Optional[str] = None
-
-
-children: List[Child] = []
-_next_id = 1
-
-
-@app.post(
-    "/children",
-    tags=["Children"],
-    response_model=Child,
-    status_code=status.HTTP_201_CREATED
-)
-def create_child(child: ChildCreate) -> Child:
-    global _next_id
-    new_child = Child(id=_next_id, **child.model_dump())
-    children.append(new_child)
-    _next_id += 1
-    return new_child
-
-
-@app.get(
-    "/children",
-    tags=["Children"],
-    response_model=List[Child]
-)
-def list_children() -> List[Child]:
-    return children
-
-
-@app.get("/children/{id}", tags=["Children"], response_model=Child)
-def get_child(id: int):
-    for child in children:
-        if child.id == id:
-            return child
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Child not found")
-
-
-@app.patch("/children/{id}", tags=["Children"], response_model=Child)
-def update_child(id: int, update: ChildUpdate) -> Child:
-    for index, child in enumerate(children):
-        if child.id == id:
-            updates = update.model_dump(exclude_unset=True)
-            updated = child.model_copy(update=updates)
-            children[index] = updated
-            return updated
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Child not found")
-
-
-@app.delete(
-    "/children/{id}",
-    tags=["Children"],
-    status_code=status.HTTP_204_NO_CONTENT
-)
-def delete_child(id: int) -> None:
-    for index, child in enumerate(children):
-        if child.id == id:
-            children.pop(index)
-            return
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Child not found")
+app.include_router(children_router)
